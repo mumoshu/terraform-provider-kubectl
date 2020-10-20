@@ -2,7 +2,6 @@ package kubectl
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
@@ -11,7 +10,7 @@ import (
 )
 
 func TestAccHelmfileReleaseSet_basic(t *testing.T) {
-	resourceName := "kubectl_ensure.the_product"
+	resourceName := "kubectl_ensure.meta"
 	releaseID := acctest.RandString(8)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,10 +21,8 @@ func TestAccHelmfileReleaseSet_basic(t *testing.T) {
 				Config: testAccHelmfileReleaseSetConfig_basic(releaseID),
 
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "environment_variables.%", "1"),
-					resource.TestCheckResourceAttr(resourceName, "selector.%", "1"),
-					resource.TestCheckResourceAttr(resourceName, "values.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "diff_output", wantedHelmfileDiffOutputForReleaseID(releaseID)),
+					resource.TestCheckResourceAttr(resourceName, "labels.%", "2"),
+					resource.TestCheckResourceAttr(resourceName, "annotations.%", "2"),
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 				),
 			},
@@ -34,7 +31,7 @@ func TestAccHelmfileReleaseSet_basic(t *testing.T) {
 }
 
 func TestAccHelmfileReleaseSet_binaries(t *testing.T) {
-	resourceName := "kubectl_ensure.the_product"
+	resourceName := "kubectl_ensure.meta"
 	releaseID := acctest.RandString(8)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -45,10 +42,8 @@ func TestAccHelmfileReleaseSet_binaries(t *testing.T) {
 				Config: testAccHelmfileReleaseSetConfig_binaries(releaseID),
 
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "environment_variables.%", "1"),
-					resource.TestCheckResourceAttr(resourceName, "selector.%", "1"),
-					resource.TestCheckResourceAttr(resourceName, "values.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "diff_output", wantedHelmfileDiffOutputForReleaseID(releaseID)),
+					resource.TestCheckResourceAttr(resourceName, "labels.%", "2"),
+					resource.TestCheckResourceAttr(resourceName, "annotations.%", "2"),
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 				),
 			},
@@ -78,219 +73,46 @@ func testAccCheckShellScriptDestroy(s *terraform.State) error {
 
 func testAccHelmfileReleaseSetConfig_basic(randVal string) string {
 	return fmt.Sprintf(`
-resource "kubectl_ensure" "the_product" {
-  content = <<EOF
-repositories:
-- name: sp
-  url: https://stefanprodan.github.io/podinfo
+resource "kubectl_ensure" "meta" {
+  namespace = "kube-system"
+  resource = "configmap"
+  name = "aws-auth"
 
-releases:
-- name: pi-%s
-  chart: sp/podinfo
-  version: 4.0.6
-  values:
-  - image:
-      tag: "123"
-  labels:
-    labelkey1: value1
-EOF
+  labels = {
+    "key1" = "%s"
+    "key2" = "two"
+  }
 
-  helm_binary = "helm"
+  annotations = {
+    "key3" = "%s"
+    "key4" = "four"
+  }
 
   kubeconfig = pathexpand("~/.kube/config")
-
-  working_directory = "%s"
-
-  environment = "default"
-
-  environment_variables = {
-    FOO = "foo"
-  }
-
-  values = [
-    <<EOF
-{"name": "myapp"}
-EOF
-  ]
-
-  selector = {
-    labelkey1 = "value1"
-  }
 }
 `, randVal, randVal)
 }
 
 func testAccHelmfileReleaseSetConfig_binaries(randVal string) string {
 	return fmt.Sprintf(`
-resource "kubectl_ensure" "the_product" {
-  content = <<EOF
-repositories:
-- name: sp
-  url: https://stefanprodan.github.io/podinfo
+resource "kubectl_ensure" "meta" {
+  version = ">= 1.18.0, < 1.19.0"
 
-releases:
-- name: pi-%s
-  chart: sp/podinfo
-  version: 4.0.6
-  values:
-  - image:
-      tag: "123"
-  labels:
-    labelkey1: value1
-EOF
+  namespace = "kube-system"
+  resource = "configmap"
+  name = "aws-auth"
 
-  version = "0.128.1"
-  helm_version = "3.2.1"
+  labels = {
+    "key1" = "%s"
+    "key2" = "two"
+  }
+
+  annotations = {
+    "key3" = "%s"
+    "key4" = "four"
+  }
 
   kubeconfig = pathexpand("~/.kube/config")
-
-  working_directory = "%s"
-
-  environment = "default"
-
-  environment_variables = {
-    FOO = "foo"
-  }
-
-  values = [
-    <<EOF
-{"name": "myapp"}
-EOF
-  ]
-
-  selector = {
-    labelkey1 = "value1"
-  }
 }
 `, randVal, randVal)
-}
-
-func wantedHelmfileDiffOutputForReleaseID(id string) string {
-	releaseName := fmt.Sprintf("pi-%s", id)
-
-	return strings.ReplaceAll(`Adding repo sp https://stefanprodan.github.io/podinfo
-"sp" has been added to your repositories
-
-Comparing release=${RELEASE_NAME}, chart=sp/podinfo
-********************
-
-	Release was not present in Helm.  Diff will show entire contents as new.
-
-********************
-default, ${RELEASE_NAME}-podinfo, Deployment (apps) has been added:
-- 
-+ # Source: podinfo/templates/deployment.yaml
-+ apiVersion: apps/v1
-+ kind: Deployment
-+ metadata:
-+   name: ${RELEASE_NAME}-podinfo
-+   labels:
-+     app: ${RELEASE_NAME}-podinfo
-+     chart: podinfo-4.0.6
-+     release: ${RELEASE_NAME}
-+     heritage: Helm
-+ spec:
-+   replicas: 1
-+   strategy:
-+     type: RollingUpdate
-+     rollingUpdate:
-+       maxUnavailable: 1
-+   selector:
-+     matchLabels:
-+       app: ${RELEASE_NAME}-podinfo
-+   template:
-+     metadata:
-+       labels:
-+         app: ${RELEASE_NAME}-podinfo
-+       annotations:
-+         prometheus.io/scrape: "true"
-+         prometheus.io/port: "9898"
-+     spec:
-+       terminationGracePeriodSeconds: 30
-+       containers:
-+         - name: podinfo
-+           image: "stefanprodan/podinfo:123"
-+           imagePullPolicy: IfNotPresent
-+           command:
-+             - ./podinfo
-+             - --port=9898
-+             - --port-metrics=9797
-+             - --grpc-port=9999
-+             - --grpc-service-name=podinfo
-+             - --level=info
-+             - --random-delay=false
-+             - --random-error=false
-+           env:
-+           - name: PODINFO_UI_COLOR
-+             value: #34577c
-+           ports:
-+             - name: http
-+               containerPort: 9898
-+               protocol: TCP
-+             - name: http-metrics
-+               containerPort: 9797
-+               protocol: TCP
-+             - name: grpc
-+               containerPort: 9999
-+               protocol: TCP
-+           livenessProbe:
-+             exec:
-+               command:
-+               - podcli
-+               - check
-+               - http
-+               - localhost:9898/healthz
-+             initialDelaySeconds: 1
-+             timeoutSeconds: 5
-+           readinessProbe:
-+             exec:
-+               command:
-+               - podcli
-+               - check
-+               - http
-+               - localhost:9898/readyz
-+             initialDelaySeconds: 1
-+             timeoutSeconds: 5
-+           volumeMounts:
-+           - name: data
-+             mountPath: /data
-+           resources:
-+             limits: null
-+             requests:
-+               cpu: 1m
-+               memory: 16Mi
-+       volumes:
-+       - name: data
-+         emptyDir: {}
-default, ${RELEASE_NAME}-podinfo, Service (v1) has been added:
-- 
-+ # Source: podinfo/templates/service.yaml
-+ apiVersion: v1
-+ kind: Service
-+ metadata:
-+   name: ${RELEASE_NAME}-podinfo
-+   labels:
-+     app: podinfo
-+     chart: podinfo-4.0.6
-+     release: ${RELEASE_NAME}
-+     heritage: Helm
-+ spec:
-+   type: ClusterIP
-+   ports:
-+     - port: 9898
-+       targetPort: http
-+       protocol: TCP
-+       name: http
-+     - port: 9999
-+       targetPort: grpc
-+       protocol: TCP
-+       name: grpc
-+   selector:
-+     app: ${RELEASE_NAME}-podinfo
-
-Affected releases are:
-  ${RELEASE_NAME} (sp/podinfo) UPDATED
-
-Identified at least one change
-`, "${RELEASE_NAME}", releaseName)
 }
