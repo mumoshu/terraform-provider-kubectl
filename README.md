@@ -46,18 +46,21 @@ The only supported resource is `kubectl_ensure`.
 
 ```hcl
 resource "kubectl_ensure" "meta" {
-	# `name` is the optional release name. When omitted, it's set to the ID of the resource, "myapp".
-	# name = "myapp-${var.somevar}"
-	namespace = "default"
-	chart = "sp/podinfo"
-	helm_binary = "helm3"
+  kubeconfig = var.kubeconfig
 
-	working_directory = path.module
-	values = [
-		<<EOF
-{ "image": {"tag": "3.14" } }
-EOF
-	]
+  namespace = "kube-system"
+  resource = "configmap"
+  name = "aws-auth"
+
+  labels = {
+    "key1" = "one"
+    "key2" = "two"
+  }
+
+  annotations = {
+    "key3" = "three"
+    "key4" = "four"
+  }
 }
 ```
 
