@@ -96,3 +96,12 @@ If you wish to build this yourself, follow the instructions:
 
 	cd terraform-provider-kubectl
 	go build
+
+## Alternatives
+
+This project has been published in October 2020. At that time, there was already an existing, well-known, and awesome project called [gavinbunney/terraform-provider-kubectl](https://github.com/gavinbunney/terraform-provider-kubectl).
+
+The reason I created this was I wanted to patch K8s resources with labels and annotations, so that I can adopt `aws-auth` configmap created by `eksctl` to be managed by `helm`.
+
+I may gradually add other features like gabinbunney's kubectl provider cover, like applying K8s manifests. But if you think this provider isn't what you want,
+I definitely recommend checking out [gabinbuney's](https://github.com/gavinbunney/terraform-provider-kubectl) as an alternative to this provider!
