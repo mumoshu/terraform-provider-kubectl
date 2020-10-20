@@ -74,6 +74,6 @@ release:
 	gpg --armor --detach-sign
 	goreleaser release --rm-dist
 
-.PHONY: release/test
-release/test: goreleaser
+.PHONY: test/release
+test/release: goreleaser
 	goreleaser release --skip-publish --snapshot --rm-dist --skip-sign
