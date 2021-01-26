@@ -88,6 +88,8 @@ func NewCommandWithKubeconfigAndNamespace(e *Ensure, args ...string) (*exec.Cmd,
 func CreateOrUpdate(e *Ensure, d ResourceReadWrite) error {
 	logf("[DEBUG] Ensuring labels and annotations...")
 
+	ctx := newContext(d)
+
 	if len(e.Annotations) > 0 {
 		args := []string{
 			"annotate", "--overwrite", e.Resource, e.Name,
@@ -103,7 +105,7 @@ func CreateOrUpdate(e *Ensure, d ResourceReadWrite) error {
 		}
 
 		state := NewState()
-		_, err = runCommand(cmd, state, false)
+		_, err = runCommand(ctx, cmd, state, false)
 		if err != nil {
 			return xerrors.Errorf("running %s %s: %w", cmd.Path, strings.Join(cmd.Args, " "), err)
 		}
@@ -124,13 +126,11 @@ func CreateOrUpdate(e *Ensure, d ResourceReadWrite) error {
 		}
 
 		state := NewState()
-		_, err = runCommand(cmd, state, false)
+		_, err = runCommand(ctx, cmd, state, false)
 		if err != nil {
 			return fmt.Errorf("running kubectl-label: %w", err)
 		}
 	}
-
-	return nil
 
 	return nil
 }

@@ -91,6 +91,33 @@ resource "kubectl_ensure" "meta" {
 
 Please see [this example](./example/testdata/02-shoal) for more details.
 
+
+### AWS authentication and AssumeRole support
+
+Providing any combination of `aws_region`, `aws_profile`, and `aws_assume_role`,
+the provider obtains the following environment variables and provider it to any `kubectl` command.
+
+- `aws_region` attribute: `AWS_DEFAULT_REGION`
+- `aws_profile` attribute: `AWS_PROFILE`
+- `aws_assume_role` block: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` obtained by calling `sts:AssumeRole`
+
+```hcl-terraform
+resource "kubectl_ensure" "meta" {
+  aws_region = var.region
+  aws_profile = var.profile
+  aws_assume_role {
+    role_arn = "arn:aws:iam::${var.account_id}:role/${var.role_name}"
+  }
+  // snip
+```
+
+Those environment variables go from the provider to `kubectl`, `client-go`, and finally the aws exec
+credentials provider that reads the environment variables to call `aws eks get-token` which internally calls
+`sts:GetCallerIdentity`(e.g. `aws sts get-caller-identity`) for authentication.
+
+See https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html for more information on how authentication
+works on EKS.
+
 ## Develop
 If you wish to build this yourself, follow the instructions:
 

@@ -3,6 +3,7 @@ package kubectl
 import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/mumoshu/terraform-provider-eksctl/pkg/sdk/tfsdk"
 	"github.com/rs/xid"
 	"golang.org/x/xerrors"
 )
@@ -17,6 +18,17 @@ const KeyResource = "resource"
 const KeyKubeconfig = "kubeconfig"
 
 var EnsureSchema = map[string]*schema.Schema{
+	KeyAWSRegion: {
+		Type:     schema.TypeString,
+		Optional: true,
+		ForceNew: false,
+	},
+	KeyAWSProfile: {
+		Type:     schema.TypeString,
+		Optional: true,
+		ForceNew: false,
+	},
+	KeyAWSAssumeRole: tfsdk.SchemaAssumeRole(),
 	KeyAnnotations: {
 		Type:     schema.TypeMap,
 		Optional: true,
