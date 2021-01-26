@@ -6,6 +6,7 @@ Use-cases:
 
 - Integrate `kubectl` run(s) into Terraform-managed DAG of resources
   - Annotate or label K8s resources created by other Terraform resource like `eksctl_cluster` and `eksctl`
+- [AssumeRole before running kubectl](#aws-authentication-and-assumerole-support)
 
 ## Prerequisites
 
